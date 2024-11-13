@@ -11,3 +11,10 @@ script = ExtResource("1_ibxss")
 [node name="Cursor" type="Sprite2D" parent="."]
 texture = SubResource("PlaceholderTexture2D_33a0n")
 centered = false
+
+[node name="PlaceBuildingButton" type="Button" parent="."]
+offset_left = 8.0
+offset_top = 680.0
+offset_right = 125.0
+offset_bottom = 711.0
+text = "Place Building"
