@@ -1,23 +1,22 @@
+using Game.Manager;
 using Godot;
-using System.Collections.Generic;
 
 namespace Game;
 
 public partial class Main : Node
 {
+	private GridManager gridManager;
 	private Sprite2D cursor;
 	private PackedScene buildingScene;
 	private Button placeBuildingButton;
-	private TileMapLayer hightlightTileMapLayer;
 	private Vector2? hoveredGridCell;
-	private HashSet<Vector2> occupiedCells = new();
 
 	public override void _Ready()
 	{
 		buildingScene = GD.Load<PackedScene>("res://scenes/building/Building.tscn");
+		gridManager = GetNode<GridManager>("GridManager");
 		cursor = GetNode<Sprite2D>("Cursor");
 		placeBuildingButton = GetNode<Button>("PlaceBuildingButton");
-		hightlightTileMapLayer = GetNode<TileMapLayer>("HighlightTileMapLayer");
 
 		cursor.Visible = false;
 
@@ -27,7 +26,7 @@ public partial class Main : Node
 
     public override void _UnhandledInput(InputEvent evt)
     {
-		if (hoveredGridCell.HasValue && evt.IsActionPressed("left_click") && !occupiedCells.Contains(hoveredGridCell.Value))
+		if (hoveredGridCell.HasValue && evt.IsActionPressed("left_click") && gridManager.IsTilePositionValid(hoveredGridCell.Value))
 		{
 			PlaceBuildingAtHoveredCellPosition();
 			cursor.Visible = false;
@@ -36,23 +35,16 @@ public partial class Main : Node
 
     public override void _Process(double delta)
 	{
-		var gridPosition = GetMouseGridCellPosition();
+		var gridPosition = gridManager.GetMouseGridCellPosition();
 		cursor.GlobalPosition = gridPosition * 64;
 
 		if (cursor.Visible && (!hoveredGridCell.HasValue || hoveredGridCell.Value != gridPosition))
 		{
 			hoveredGridCell = gridPosition;
-			UpdateHighlightTileMapLayer();
+			gridManager.HighlightValidTilesInRadius(hoveredGridCell.Value, 3);
 		}
 	}
 
-	private Vector2 GetMouseGridCellPosition()
-	{
-		var mousePosition = hightlightTileMapLayer.GetGlobalMousePosition();
-		var gridPosition = mousePosition / 64;
-		gridPosition = gridPosition.Floor();
-		return gridPosition;
-	}
 
 	private void PlaceBuildingAtHoveredCellPosition()
 	{
@@ -62,28 +54,10 @@ public partial class Main : Node
 		AddChild(building);
 
 		building.GlobalPosition = hoveredGridCell.Value * 64;
-		occupiedCells.Add(hoveredGridCell.Value);
+		gridManager.MarkTileAsOccupied(hoveredGridCell.Value);
 
 		hoveredGridCell = null;
-		UpdateHighlightTileMapLayer();
-	}
-
-	private void UpdateHighlightTileMapLayer()
-	{
-		hightlightTileMapLayer.Clear();
-
-		if (!hoveredGridCell.HasValue)
-		{
-			return;
-		}
-
-		for (var x = hoveredGridCell.Value.X - 3; x <= hoveredGridCell.Value.X + 3; x++)
-		{
-			for (var y = hoveredGridCell.Value.Y - 3; y <= hoveredGridCell.Value.Y + 3; y++)
-			{
-				hightlightTileMapLayer.SetCell(new Vector2I((int)x, (int)y), 0, Vector2I.Zero);
-			}
-		}
+		gridManager.ClearHighlightedTiles();
 	}
 
 	private void OnButtonPressed()
