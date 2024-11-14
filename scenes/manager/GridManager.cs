@@ -12,21 +12,21 @@ public partial class GridManager : Node
 	[Export]
 	private TileMapLayer baseTerrainTileMapLayer;
 
-	public override void _Ready()
+	public bool IsTilePositionValid(Vector2I tilePosition)
 	{
-	}
+		var customData = baseTerrainTileMapLayer.GetCellTileData(tilePosition);
+		if (customData == null) return false;
+		if (!(bool)customData.GetCustomData("buildable")) return false;
 
-	public bool IsTilePositionValid(Vector2 tilePosition)
-	{
 		return !occupiedCells.Contains(tilePosition);
 	}
 
-	public void MarkTileAsOccupied(Vector2 tilePosition)
+	public void MarkTileAsOccupied(Vector2I tilePosition)
 	{
 		occupiedCells.Add(tilePosition);
 	}
 
-	public void HighlightValidTilesInRadius(Vector2 rootCell, int radius)
+	public void HighlightValidTilesInRadius(Vector2I rootCell, int radius)
 	{
 		ClearHighlightedTiles();
 
@@ -34,8 +34,9 @@ public partial class GridManager : Node
 		{
 			for (var y = rootCell.Y - radius; y <= rootCell.Y + radius; y++)
 			{
-				if (!IsTilePositionValid(new Vector2(x, y))) continue;
-				highlightTileMapLayer.SetCell(new Vector2I((int)x, (int)y), 0, Vector2I.Zero);
+				var tilePosition = new Vector2I(x, y);
+				if (!IsTilePositionValid(tilePosition)) continue;
+				highlightTileMapLayer.SetCell(tilePosition, 0, Vector2I.Zero);
 			}
 		}
 	}
@@ -45,11 +46,11 @@ public partial class GridManager : Node
 		highlightTileMapLayer.Clear();
 	}
 
-	public Vector2 GetMouseGridCellPosition()
+	public Vector2I GetMouseGridCellPosition()
 	{
 		var mousePosition = highlightTileMapLayer.GetGlobalMousePosition();
 		var gridPosition = mousePosition / 64;
 		gridPosition = gridPosition.Floor();
-		return gridPosition;
+		return new Vector2I((int)gridPosition.X, (int)gridPosition.Y);
 	}
 }
